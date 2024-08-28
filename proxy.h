@@ -10,24 +10,23 @@
 #define FUNCTION
 #endif
 
-#define PROXY_CALL_1( X )    ( ( PVOID( WINAPI * )( LPVOID ) ) X )
-#define PROXY_CALL_2( X )    ( ( PVOID( WINAPI * )( LPVOID, LPVOID ) ) X )
-#define PROXY_CALL_3( X )    ( ( PVOID( WINAPI * )( LPVOID, LPVOID, LPVOID ) ) X )
-#define PROXY_CALL_4( X )    ( ( PVOID( WINAPI * )( LPVOID, LPVOID, LPVOID, LPVOID ) ) X )
-#define PROXY_CALL_5( X )    ( ( PVOID( WINAPI * )( LPVOID, LPVOID, LPVOID, LPVOID, LPVOID ) ) X )
-#define PROXY_CALL_6( X )    ( ( PVOID( WINAPI * )( LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID ) ) X )
-#define PROXY_CALL_7( X )    ( ( PVOID( WINAPI * )( LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID ) ) X )
-#define PROXY_CALL_8( X )    ( ( PVOID( WINAPI * )( LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID ) ) X )
-#define PROXY_CALL_9( X )    ( ( PVOID( WINAPI * )( LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID, LPVOID ) ) X )
-
-#define PROXY_CALL( X, Y )   PROXY_CALL_##X( Y )
-
 #ifdef _WIN64
 #define QUOTE_SYMBOL( x )    x
 #else
 #define QUOTE_SYMBOL( x )    x
 #endif
 
+#define RVA_2_VA(T, B, R)                       ( T )( ( PVOID ) B + R )
+#define RVA_2_VA_VALUE(T, B, R)                 *RVA_2_VA( T, B, R )
+#define C_PTR( x )                              ( ( PVOID )    x )
+#define U_PTR( x )                              ( ( UINT_PTR ) x )
+
+#define PTR_TO_INT32( x, o )                    RVA_2_VA_VALUE( PDWORD32, x, o )
+#define PTR_TO_INT64( x, o )                    RVA_2_VA_VALUE( PDWORD64, x, o )
+#define PTR_TO_INT16( x, o )                    RVA_2_VA_VALUE( PWORD,    x, o )
+#define PTR_TO_INT08( x, o )                    RVA_2_VA_VALUE( PBYTE,    x, o )
+
+#define NAKED                __declspec( naked )
 #define PROXY_ARGS_SIZE( N ) ( sizeof( PROXY_ARGS ) + ( N ) * sizeof( PVOID ) )
 #define PROXY_FUNCTIOND( N ) PROXY_FUNCTION_NAME_##N
 
@@ -41,26 +40,28 @@ typedef struct
 } PROXY_ARGS, *LPROXY_ARGS;
 
 typedef struct {
-    struct {
-        DEFINE_FUNC( LdrLoadDll );
-        DEFINE_FUNC( NtAllocateVirtualMemory );
-        DEFINE_FUNC( NtProtectVirtualMemory );
-        DEFINE_FUNC( NtFreeVirtualMemory );
+    DEFINE_FUNC( LdrLoadDll );
+    DEFINE_FUNC( NtAllocateVirtualMemory );
+    DEFINE_FUNC( NtProtectVirtualMemory );
+    DEFINE_FUNC( NtFreeVirtualMemory );
 
-        DEFINE_FUNC( TpAllocWork );
-        DEFINE_FUNC( TpPostWork );
-        DEFINE_FUNC( TpReleaseWork );
-        DEFINE_FUNC( TpWaitForWork );
-    } Api ;
-    
-    struct {
-        PVOID Ntdll;
-    } Dll;
+    DEFINE_FUNC( TpAllocWork );
+    DEFINE_FUNC( TpPostWork );
+    DEFINE_FUNC( TpReleaseWork );
+    DEFINE_FUNC( TpWaitForWork );
+
+    DEFINE_FUNC( RtlAddVectoredExceptionHandler );
+    DEFINE_FUNC( RtlRemoveVectoredExceptionHandler );
 } INSTANCE, *PINSTANCE;
 
+PVOID InvokeProxy( PINSTANCE Instance, LPVOID Target, LPROXY_ARGS Args );
 PVOID BxLoadLibrary( PINSTANCE Instance, PCHAR String );
 PVOID BxVirtualAlloc( PINSTANCE Instance, LPVOID Address, DWORD Size, DWORD AllocationType, DWORD Protect );
 BOOL  BxVirtualFree( PINSTANCE Instance, PVOID Address, DWORD Size, DWORD FreeType );
 BOOL  BxVirtualProtect( PINSTANCE Instance, PVOID Address, DWORD Size, DWORD NewProtect, PDWORD OldProtect );
+
+VOID  CALLBACK PROXY_FUNCTIOND( 4 )( PTP_CALLBACK_INSTANCE Instance, LPROXY_ARGS Args, PTP_WORK Work );
+VOID  CALLBACK PROXY_FUNCTIOND( 5 )( PTP_CALLBACK_INSTANCE Instance, LPROXY_ARGS Args, PTP_WORK Work );
+VOID  CALLBACK PROXY_FUNCTIOND( 6 )( PTP_CALLBACK_INSTANCE Instance, LPROXY_ARGS Args, PTP_WORK Work );
 
 #endif

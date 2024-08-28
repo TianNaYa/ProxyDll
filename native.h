@@ -161,5 +161,17 @@ TpWaitForWork(
     BOOL     Data
 );
 
+PVOID
+NTAPI
+RtlAddVectoredExceptionHandler (
+    LPVOID                      First,
+    PVECTORED_EXCEPTION_HANDLER Handler
+);
+
+ULONG
+NTAPI
+RtlRemoveVectoredExceptionHandler (
+    PVOID Handle
+);
 
 #endif
